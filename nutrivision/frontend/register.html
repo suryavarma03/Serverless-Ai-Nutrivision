@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>NutriVision - Register</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+</head>
+
+<body>
+    <nav>
+        <a href="index.html" class="brand">
+            <span class="brand-icon">🥗</span> NutriVision
+        </a>
+        <div class="nav-links">
+            <a href="login.html" class="active">Login</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Create <span class="highlight">Account</span></h1>
+            <p>Setup a profile to get personalized Bedrock recommendations based on diet goals and conditions.</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <form id="registerForm">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="email" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password" class="form-control" required />
+                    </div>
+
+                    <div class="form-group">
+                        <label>Diet Goal</label>
+                        <select id="dietGoal" class="form-control">
+                            <option value="">None / General</option>
+                            <option value="Weight Loss">Weight Loss</option>
+                            <option value="Muscle Gain">Muscle Gain</option>
+                            <option value="Keto">Keto</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Health Conditions (Comma separated)</label>
+                        <input type="text" id="conditions" class="form-control"
+                            placeholder="diabetic, hypertension..." />
+                    </div>
+
+                    <button type="submit" class="btn" id="registerBtn">Create Profile</button>
+
+                    <p style="text-align: center; margin-top: 20px;">
+                        Already registered? <a href="login.html" style="color: var(--primary-color);">Login here</a>.
+                    </p>
+                </form>
+            </div>
+
+            <div id="errorState" class="error-state hidden" style="margin-top: 20px;"></div>
+            <div id="successState" class="card hidden"
+                style="background-color: rgba(16, 185, 129, 0.1); border-color: var(--primary-color);">
+                <h3 style="color: var(--primary-color);">Profile Created in DynamoDB!</h3>
+                <p style="margin-top: 10px;">Please <a href="login.html"
+                        style="color: var(--text-main); font-weight: bold;">Login now</a>.</p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('registerBtn');
+            const errorState = document.getElementById('errorState');
+            btn.disabled = true;
+
+            const condString = document.getElementById('conditions').value;
+            const conditions = condString ? condString.split(',').map(s => s.trim()) : [];
+
+            try {
+                const response = await fetch(`${window.CONFIG.API_BASE_URL}/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value,
+                        diet_goal: document.getElementById('dietGoal').value || null,
+                        health_conditions: conditions
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+
+                document.getElementById('registerForm').classList.add('hidden');
+                document.getElementById('successState').classList.remove('hidden');
+            } catch (error) {
+                errorState.classList.remove('hidden');
+                errorState.innerHTML = `<p>${error.message}</p>`;
+                btn.disabled = false;
+            }
+        });
+    </script>
+</body>
+
+</html>

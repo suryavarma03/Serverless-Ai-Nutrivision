@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriVision - Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav>
+        <a href="index.html" class="brand">
+            <span class="brand-icon">🥗</span> NutriVision
+        </a>
+        <div class="nav-links">
+            <a href="analyze.html">AI Image</a>
+            <a href="barcode.html">Barcode</a>
+            <a href="login.html" id="authLink">Login</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Your Personalized <br><span class="highlight">Nutrition Assistant</span></h1>
+            <p>Powered by AWS Serverless. Discover the true nutritional value of your meals instantly using advanced AI
+                image detection and barcode scanning.</p>
+        </header>
+
+        <main class="dashboard-grid">
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h2>Food Photography ✨</h2>
+                    <p style="color: var(--text-muted); margin: 15px 0 30px; line-height: 1.6;">
+                        Snap a picture of your dish. We use AWS Rekognition and Amazon Bedrock to identify ingredients
+                        and provide a personalized health breakdown.
+                    </p>
+                </div>
+                <a href="analyze.html" style="text-decoration: none;">
+                    <button class="btn">Launch Vision AI</button>
+                </a>
+            </div>
+
+            <div class="card" style="display: flex; flex-direction: column; justify-content: space-between;">
+                <div>
+                    <h2>Label Scanner 🔍</h2>
+                    <p style="color: var(--text-muted); margin: 15px 0 30px; line-height: 1.6;">
+                        Scan a barcode via OpenFoodFacts, or take a clear photo of an ingredient list for instant AWS
+                        Textract OCR translation.
+                    </p>
+                </div>
+                <a href="barcode.html" style="text-decoration: none;">
+                    <button class="btn btn-secondary">Scan Product Label</button>
+                </a>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('nutrivision_token');
+            if (token) {
+                document.getElementById('authLink').textContent = 'Profile';
+                document.getElementById('authLink').href = 'profile.html';
+            }
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>NutriVision - Profile</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+
+<body>
+    <nav>
+        <a href="index.html" class="brand">
+            <span class="brand-icon">🥗</span> NutriVision
+        </a>
+        <div class="nav-links">
+            <a href="analyze.html">AI Image</a>
+            <a href="barcode.html">Barcode</a>
+            <a href="#" class="active" id="logoutBtn">Logout</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Your Profile <span class="highlight">Status</span></h1>
+            <p>You are authenticated. When you perform an Analysis, your stored diet goals and conditions will guide
+                Bedrock's insights.</p>
+        </header>
+
+        <main>
+            <div class="card" style="text-align: center;">
+                <h2>Welcome back!</h2>
+                <p style="margin-top: 20px; color: var(--text-muted);">You are actively logged in with a JWT token.</p>
+                <p style="margin-top: 10px; color: var(--text-muted);">DynamoDB is storing your preferences to
+                    personalize your nutrition reports.</p>
+
+                <div style="margin-top: 30px;">
+                    <a href="analyze.html"><button class="btn" style="margin-bottom: 10px;">Test Image
+                            Analysis</button></a>
+                    <a href="barcode.html"><button class="btn" style="background-color: #3b82f6;">Test Barcode
+                            Analysis</button></a>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Very basic MVP profile logic
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('nutrivision_token');
+            if (!token) {
+                window.location.href = 'login.html';
+            }
+        });
+
+        document.getElementById('logoutBtn').addEventListener('click', (e) => {
+            e.preventDefault();
+            localStorage.removeItem('nutrivision_token');
+            window.location.href = 'index.html';
+        });
+    </script>
+</body>
+
+</html>

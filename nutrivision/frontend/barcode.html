@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>NutriVision - Scan Barcode</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+</head>
+
+<body>
+    <nav>
+        <a href="index.html" class="brand">
+            <span class="brand-icon">🥗</span> NutriVision
+        </a>
+        <div class="nav-links">
+            <a href="analyze.html">AI Image</a>
+            <a href="barcode.html" class="active">Barcode</a>
+            <a href="login.html" id="authLink">Login</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Product <span class="highlight">Scanner</span></h1>
+            <p>Scan a product barcode or upload a nutrition label. We use OpenFoodFacts and Bedrock to give you
+                personalized health insights.</p>
+        </header>
+
+        <main>
+            <!-- Barcode input Section -->
+            <div class="card">
+                <h2>Barcode Lookup</h2>
+                <div class="form-group" style="margin-top: 15px;">
+                    <input type="text" id="barcodeInput" class="form-control" placeholder="e.g. 737628064502" />
+                </div>
+                <button id="scanBarcodeBtn" class="btn"
+                    style="background: linear-gradient(135deg, #10b981, #059669);">Lookup Product 🔍</button>
+            </div>
+
+            <div style="text-align: center; margin: 1.5rem 0; color: var(--text-muted); font-weight: bold;">OR</div>
+
+            <!-- Label OCR section -->
+            <div class="card upload-section">
+                <h2>Label Image OCR</h2>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 5px; margin-bottom: 15px;">Take a
+                    clear photo of the ingredients label. We will read it using AWS Textract.</p>
+                <div class="file-input-wrapper">
+                    <input type="file" id="labelImage" accept="image/*" />
+                    <label for="labelImage" id="fileLabel">
+                        <span class="icon">📁</span> Select Label Image
+                    </label>
+                </div>
+                <div id="imagePreviewContainer" class="hidden">
+                    <img id="imagePreview" src="" alt="Label Preview" />
+                </div>
+                <button id="scanLabelBtn" class="btn" disabled>Extract Text & Analyze</button>
+            </div>
+
+            <div class="card loading-state hidden" id="loadingState">
+                <div class="spinner"></div>
+                <p>Retrieving product data and analyzing with Bedrock...</p>
+            </div>
+
+            <div class="card result-section hidden" id="resultSection">
+                <h2>Analysis Result</h2>
+                <pre id="jsonResult"></pre>
+            </div>
+
+            <div class="card error-state hidden" id="errorState">
+                <p id="errorMessage"></p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('nutrivision_token');
+            if (token) {
+                document.getElementById('authLink').textContent = 'Profile';
+                document.getElementById('authLink').href = 'profile.html';
+            }
+        });
+
+        // UI elements
+        const barcodeInput = document.getElementById('barcodeInput');
+        const scanBarcodeBtn = document.getElementById('scanBarcodeBtn');
+        const labelImageInput = document.getElementById('labelImage');
+        const fileLabel = document.getElementById('fileLabel');
+        const scanLabelBtn = document.getElementById('scanLabelBtn');
+        const imagePreview = document.getElementById('imagePreview');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const loadingState = document.getElementById('loadingState');
+        const resultSection = document.getElementById('resultSection');
+        const jsonResult = document.getElementById('jsonResult');
+        const errorState = document.getElementById('errorState');
+        const errorMessage = document.getElementById('errorMessage');
+
+        let selectedFile = null;
+
+        // Label Image Input Logic
+        labelImageInput.addEventListener('change', function (e) {
+            if (e.target.files && e.target.files[0]) {
+                selectedFile = e.target.files[0];
+                fileLabel.innerHTML = `<span class="icon">✅</span> ${selectedFile.name}`;
+                scanLabelBtn.disabled = false;
+
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    imagePreview.src = event.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                }
+                reader.readAsDataURL(selectedFile);
+            } else {
+                selectedFile = null;
+                fileLabel.innerHTML = `<span class="icon">📁</span> Select Label Image`;
+                scanLabelBtn.disabled = true;
+                imagePreviewContainer.classList.add('hidden');
+            }
+        });
+
+        function resetUI() {
+            loadingState.classList.remove('hidden');
+            resultSection.classList.add('hidden');
+            errorState.classList.add('hidden');
+        }
+
+        function showResult(rawResponse) {
+            loadingState.classList.add('hidden');
+            resultSection.classList.remove('hidden');
+
+            // Add smooth scrolling to the result section
+            resultSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+            // 1. Aggressively unpack the backend response. 
+            // The python backend returns { statusCode: 200, body: "{\"database_nutrition\": {...}, \"ai_nutrition\": {...}}" }
+            let data = rawResponse;
+            if (rawResponse.body && typeof rawResponse.body === 'string') {
+                try {
+                    data = JSON.parse(rawResponse.body);
+                } catch (e) {
+                    console.error("Failed to parse the main response body string", e);
+                }
+            }
+
+            const dbNutrition = data.database_nutrition;
+            
+            // Check if dbNutrition is essentially empty (no calories or carbs present)
+            const hasDatabaseInfo = dbNutrition && (
+                dbNutrition['energy-kcal_100g'] !== undefined || 
+                dbNutrition['energy-kcal_serving'] !== undefined ||
+                dbNutrition['carbohydrates_100g'] !== undefined
+            );
+
+            // 2. Try to parse AI nutrition, which might be double-stringified depending on the backend
+            let aiData = null;
+            if (data.ai_nutrition && data.ai_nutrition.body && typeof data.ai_nutrition.body === 'string') {
+                try {
+                    // It's a stringified JSON inside a body property
+                    aiData = JSON.parse(data.ai_nutrition.body);
+                } catch (e) {
+                    console.error("Could not parse AI nutrition body string", e);
+                }
+            } else if (data.ai_nutrition && typeof data.ai_nutrition === 'string') {
+                try {
+                     // The ai object itself is a stringified JSON
+                     aiData = JSON.parse(data.ai_nutrition);
+                } catch (e) {
+                     console.error("Could not parse AI nutrition string", e);
+                }
+            } else if (data.ai_nutrition && typeof data.ai_nutrition === 'object') {
+                // It's already an object
+                aiData = data.ai_nutrition;
+            } else if (data.nutrition) {
+                // For OCR, the backend returns {"ingredients": [], "nutrition": {}} at the root level!
+                aiData = data; 
+                
+                // If the root nutrition value is a string, we need to parse it (Bedrock formatting fallback)
+                if (typeof data.nutrition === 'string') {
+                    try {
+                        aiData.nutrition = JSON.parse(data.nutrition);
+                    } catch (e) {
+                        console.error("Failed to parse stringified root nutrition", e);
+                    }
+                }
+            }
+
+            // Determine if the AI actually succeeded or generated an error
+            const aiError = aiData && aiData.nutrition && aiData.nutrition.error;
+            
+            // The backend returns ingredients at the root level: { "ingredients": [...], "nutrition": {...} }
+            const ingredientsArray = data.ingredients || (aiData && aiData.ingredients);
+
+            let html = `<div class="nutrition-card">`;
+
+            // Display Title
+            if (data.product_name) {
+                html += `<h2 class="food-title">📦 ${data.product_name}</h2>`;
+            } else if (!hasDatabaseInfo && ingredientsArray && ingredientsArray.length > 0) {
+                 html += `<h2 class="food-title">📝 Scanned Label Text</h2>`;
+            } else {
+                html += `<h2 class="food-title">📦 Unknown Product</h2>`;
+            }
+            
+            // Only show Macro Grid if we actually got database nutrition
+            if (hasDatabaseInfo) {
+                html += `
+                <h3 style="margin-bottom: 15px; color: var(--text-muted); font-size: 1rem;">Database Nutrition Info</h3>
+                <div class="macro-grid">
+                    <div class="macro-card">
+                        <h4>Calories</h4>
+                        <p>${Math.round(dbNutrition['energy-kcal_serving'] || dbNutrition['energy-kcal_100g'] || 0)}</p>
+                        <span>kcal</span>
+                    </div>
+                    <div class="macro-card">
+                        <h4>Carbs</h4>
+                        <p>${Math.round(dbNutrition['carbohydrates_serving'] || dbNutrition['carbohydrates_100g'] || 0)}g</p>
+                    </div>
+                    <div class="macro-card">
+                        <h4>Protein</h4>
+                        <p>${Math.round(dbNutrition['proteins_serving'] || dbNutrition['proteins_100g'] || 0)}g</p>
+                    </div>
+                    <div class="macro-card">
+                        <h4>Fat</h4>
+                        <p>${Math.round(dbNutrition['fat_serving'] || dbNutrition['fat_100g'] || 0)}g</p>
+                    </div>
+                </div>
+                `;
+            } else if (aiData && aiData.nutrition && aiData.nutrition.nutritional_breakdown && !aiError) {
+                // If NO database info, but AI generated macros from the OCR!
+                const macro = aiData.nutrition.nutritional_breakdown.macronutrients || {};
+                html += `
+                <h3 style="margin-bottom: 15px; color: var(--text-muted); font-size: 1rem;">AI Extracted Nutrition</h3>
+                <div class="macro-grid">
+                    <div class="macro-card">
+                        <h4>Calories</h4>
+                        <p>${aiData.nutrition.nutritional_breakdown.calories_per_serving || 0}</p>
+                        <span>kcal</span>
+                    </div>
+                    <div class="macro-card">
+                        <h4>Carbs</h4>
+                        <p>${macro.carbohydrates || '0g'}</p>
+                    </div>
+                    <div class="macro-card">
+                        <h4>Protein</h4>
+                        <p>${macro.protein || '0g'}</p>
+                    </div>
+                    <div class="macro-card">
+                        <h4>Fat</h4>
+                        <p>${macro.fat || '0g'}</p>
+                    </div>
+                </div>
+                `;
+            }
+
+            // If AI succeeded, add the Bedrock insights
+            if (aiData && aiData.nutrition && !aiError) {
+                const n = aiData.nutrition;
+                html += `
+                <div class="health-score" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                    AI Health Score
+                    <div class="score">${n.health_assessment ? n.health_assessment.overall_score : 'N/A'}/10</div>
+                </div>
+                `;
+
+                if (n.health_assessment && n.health_assessment.benefits && n.health_assessment.benefits.length > 0) {
+                    html += `
+                    <div class="nutrition-section">
+                        <h3>Benefits (AI)</h3>
+                        <ul>
+                            ${n.health_assessment.benefits.map(i => `<li>${i}</li>`).join("")}
+                        </ul>
+                    </div>`;
+                }
+
+                if (n.health_assessment && n.health_assessment.concerns && n.health_assessment.concerns.length > 0) {
+                    html += `
+                    <div class="nutrition-section">
+                        <h3>Things to Consider (AI)</h3>
+                        <ul>
+                            ${n.health_assessment.concerns.map(i => `<li>${i}</li>`).join("")}
+                        </ul>
+                    </div>`;
+                }
+
+                if (n.personalized_recommendations && n.personalized_recommendations.length > 0) {
+                    html += `
+                    <div class="nutrition-section">
+                        <h3>Recommendations (AI)</h3>
+                        <ul>
+                            ${n.personalized_recommendations.map(i => `<li>${i}</li>`).join("")}
+                        </ul>
+                    </div>`;
+                }
+            } else if (aiError) {
+                html += `
+                <div class="ai-warning">
+                    <strong>Notice:</strong> Advanced AI health insights couldn't be generated from this label right now. See the extracted text below.
+                </div>`;
+            }
+
+            // Optionally display Good/Bad Ingredients Analysis if Bedrock generated it!
+            if (aiData && aiData.nutrition && aiData.nutrition.ingredient_analysis && aiData.nutrition.ingredient_analysis.length > 0) {
+                html += `
+                <div class="nutrition-section" style="margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px;">
+                    <h3 style="color: var(--text-main); font-size: 1.1rem; margin-bottom: 15px;">Ingredient Breakdown</h3>
+                    <div class="ingredient-analysis-list">
+                        ${aiData.nutrition.ingredient_analysis.map(item => {
+                            const isGood = item.category && item.category.toLowerCase() === 'good';
+                            const badgeClass = isGood ? 'badge-good' : 'badge-bad';
+                            const badgeIcon = isGood ? '✅' : '⚠️';
+                            
+                            return `
+                            <div class="ingredient-analysis-card">
+                                <div class="ingredient-header">
+                                    <strong>${item.name}</strong>
+                                    <span class="ingredient-badge ${badgeClass}">${badgeIcon} ${item.category}</span>
+                                </div>
+                                <p class="ingredient-reason">${item.reason}</p>
+                            </div>
+                            `;
+                        }).join('')}
+                    </div>
+                </div>
+                `;
+            }
+
+            html += `</div>`; // Close nutrition-card
+
+            // Inject the dynamic HTML instead of JSON
+            const resultParent = document.getElementById('resultSection');
+            resultParent.innerHTML = html;
+        }
+
+        function showError(msg) {
+            loadingState.classList.add('hidden');
+            errorMessage.textContent = `Error: ${msg}`;
+            errorState.classList.remove('hidden');
+        }
+
+        // Barcode Submit
+        scanBarcodeBtn.addEventListener('click', async () => {
+            const code = barcodeInput.value.trim();
+            if (!code) return;
+
+            scanBarcodeBtn.disabled = true;
+            resetUI();
+
+            try {
+                const response = await fetch(`${window.CONFIG.API_BASE_URL}/scan-barcode`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ barcode: code })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+
+                showResult(data);
+            } catch (err) {
+                showError(err.message);
+            } finally {
+                scanBarcodeBtn.disabled = false;
+            }
+        });
+
+        // OCR Label Submit
+        scanLabelBtn.addEventListener('click', async () => {
+            if (!selectedFile) return;
+
+            scanLabelBtn.disabled = true;
+            resetUI();
+
+            const reader = new FileReader();
+            reader.readAsDataURL(selectedFile);
+
+            reader.onload = async function () {
+                const base64String = reader.result.split(',')[1];
+
+                try {
+                    const response = await fetch(`${window.CONFIG.API_BASE_URL}/scan-ingredients`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image_base64: base64String })
+                    });
+
+                    const data = await response.json();
+                    if (!response.ok) throw new Error(data.detail);
+
+                    showResult(data);
+                } catch (err) {
+                    showError(err.message);
+                } finally {
+                    scanLabelBtn.disabled = false;
+                }
+            };
+        });
+    </script>
+</body>
+
+</html>

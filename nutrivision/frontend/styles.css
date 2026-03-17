@@ -1,0 +1,556 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700;800&family=Playfair+Display:ital,wght@0,600;1,600&display=swap');
+
+:root {
+    --bg-color: #fcfcfc;
+    --paper-bg: #ffffff;
+    --primary-color: #2F855A;
+    /* Rich Leaf Green */
+    --primary-hover: #276749;
+    --accent-color: #D69E2E;
+    /* Warm Honey/Citrus */
+    --text-main: #2D3748;
+    --text-muted: #718096;
+    --border-color: #E2E8F0;
+    --shadow-soft: 0 10px 40px -10px rgba(47, 133, 90, 0.15);
+    --shadow-hard: 0 20px 25px -5px rgba(0, 0, 0, 0.05);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Poppins', sans-serif;
+    background-color: var(--bg-color);
+    color: var(--text-main);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    overflow-x: hidden;
+
+    /* Organic, appetizing background */
+    background-image:
+        radial-gradient(circle at top right, rgba(214, 158, 46, 0.05) 0%, transparent 40%),
+        radial-gradient(circle at bottom left, rgba(47, 133, 90, 0.05) 0%, transparent 40%),
+        url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%232f855a' fill-opacity='0.03'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+}
+
+/* Elegant, welcoming Nav */
+nav {
+    width: 100%;
+    padding: 1.5rem 4rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(47, 133, 90, 0.1);
+    position: fixed;
+    top: 0;
+    z-index: 100;
+}
+
+.brand {
+    font-family: 'Playfair Display', serif;
+    font-weight: 600;
+    font-size: 2rem;
+    color: var(--primary-color);
+    text-decoration: none;
+    letter-spacing: -0.5px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.brand-icon {
+    font-size: 2.2rem;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2.5rem;
+}
+
+.nav-links a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: color 0.2s ease;
+}
+
+.nav-links a:hover,
+.nav-links a.active {
+    color: var(--primary-color);
+}
+
+.container {
+    width: 100%;
+    max-width: 850px;
+    margin-top: 130px;
+    padding: 0 2rem 4rem;
+}
+
+/* Beautiful, appetizing header */
+header {
+    text-align: center;
+    margin-bottom: 3.5rem;
+}
+
+h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 4rem;
+    font-weight: 600;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    color: var(--text-main);
+    letter-spacing: -1px;
+}
+
+/* Highlighted word style */
+.highlight {
+    color: var(--primary-color);
+    position: relative;
+    display: inline-block;
+}
+
+.highlight::after {
+    content: '';
+    position: absolute;
+    bottom: 5px;
+    left: 0;
+    width: 100%;
+    height: 12px;
+    background-color: rgba(214, 158, 46, 0.3);
+    z-index: -1;
+    border-radius: 6px;
+}
+
+header p {
+    color: var(--text-muted);
+    font-size: 1.25rem;
+    font-weight: 400;
+    max-width: 650px;
+    margin: 0 auto;
+    line-height: 1.6;
+}
+
+/* Soft, natural cards */
+.card {
+    background: var(--paper-bg);
+    border-radius: 20px;
+    padding: 3rem;
+    border: 1px solid var(--border-color);
+    margin-bottom: 2rem;
+    box-shadow: var(--shadow-hard);
+    position: relative;
+}
+
+/* A slight green top border for brand identity */
+.card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: linear-gradient(90deg, var(--primary-color), var(--accent-color));
+    border-radius: 20px 20px 0 0;
+}
+
+.card h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-main);
+}
+
+/* Inputs & Forms */
+.form-group {
+    margin-bottom: 2rem;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.form-control {
+    width: 100%;
+    padding: 1rem 1.2rem;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: #f8fafc;
+    color: var(--text-main);
+    font-size: 1rem;
+    font-family: inherit;
+    transition: all 0.2s ease;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background: #ffffff;
+    box-shadow: 0 0 0 4px rgba(47, 133, 90, 0.1);
+}
+
+/* File Upload - Friendly, large area */
+.file-input-wrapper {
+    position: relative;
+    display: flex;
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+
+input[type="file"] {
+    position: absolute;
+    left: 0;
+    top: 0;
+    opacity: 0;
+    width: 100%;
+    height: 100%;
+    cursor: pointer;
+    z-index: 10;
+}
+
+#fileLabel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 15px;
+    padding: 3rem 2rem;
+    background: #f8fafc;
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 1.1rem;
+    width: 100%;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+#fileLabel .icon {
+    font-size: 3rem;
+}
+
+.file-input-wrapper:hover #fileLabel {
+    border-color: var(--primary-color);
+    background: #f0fdf4;
+    color: var(--primary-color);
+}
+
+#imagePreviewContainer {
+    margin-bottom: 2rem;
+    text-align: center;
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: var(--shadow-soft);
+}
+
+#imagePreview {
+    max-width: 100%;
+    max-height: 400px;
+    width: 100%;
+    object-fit: cover;
+    display: block;
+    border-radius: 16px;
+}
+
+/* Warm, inviting buttons */
+.btn {
+    width: 100%;
+    padding: 1.1rem;
+    background-color: var(--primary-color);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px -1px rgba(47, 133, 90, 0.2);
+}
+
+.btn:hover:not(:disabled) {
+    background-color: var(--primary-hover);
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(47, 133, 90, 0.3);
+}
+
+.btn:disabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Secondary Button */
+.btn-secondary {
+    background-color: var(--accent-color);
+    box-shadow: 0 4px 6px -1px rgba(214, 158, 46, 0.2);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background-color: #B7791F;
+    box-shadow: 0 10px 15px -3px rgba(214, 158, 46, 0.3);
+}
+
+/* Loaders & Results */
+.loading-state {
+    text-align: center;
+    padding: 3rem 2rem;
+}
+
+.spinner {
+    width: 50px;
+    height: 50px;
+    border-radius: 50%;
+    border: 4px solid #f1f5f9;
+    border-top-color: var(--primary-color);
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1.5rem;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+pre {
+    background: #f8fafc;
+    padding: 1.5rem;
+    border-radius: 10px;
+    overflow-x: auto;
+    font-size: 0.95rem;
+    color: #334155;
+    border: 1px solid #e2e8f0;
+    line-height: 1.6;
+}
+
+.error-state {
+    border-color: #fca5a5;
+    background: #fef2f2;
+}
+
+.error-state p {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 1rem;
+}
+
+@media (max-width: 768px) {
+    h1 {
+        font-size: 3rem;
+    }
+
+    nav {
+        padding: 1rem 2rem;
+    }
+
+    .nav-links {
+        display: none;
+    }
+
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* --- Nutrition Dashboard Styles --- */
+.nutrition-card{
+    background:white;
+    padding:30px;
+    border-radius:18px;
+    box-shadow:0 20px 40px rgba(0,0,0,0.08);
+}
+
+.food-title{
+    font-size:30px;
+    margin-bottom:25px;
+    color:#2F855A;
+}
+
+.macro-grid{
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:15px;
+    margin-bottom:30px;
+}
+
+.macro-card{
+    background:#F0FDF4;
+    padding:18px;
+    border-radius:12px;
+    text-align:center;
+}
+
+.macro-card h4{
+    font-size:14px;
+    color:#666;
+}
+
+.macro-card p{
+    font-size:22px;
+    font-weight:bold;
+}
+
+.macro-card span{
+    font-size:12px;
+    color:#888;
+}
+
+.health-score{
+    margin:25px 0;
+    font-weight:bold;
+}
+
+.score{
+    background:#2F855A;
+    color:white;
+    padding:8px 14px;
+    border-radius:10px;
+    display:inline-block;
+}
+
+.nutrition-section{
+    margin-top:20px;
+    text-align:left;
+}
+
+.nutrition-section h3 {
+    font-size: 1.2rem;
+    color: var(--text-main);
+    margin-bottom: 8px;
+    border-bottom: 2px solid #f0fdf4;
+    padding-bottom: 5px;
+}
+
+
+.nutrition-section ul{
+    margin-top:10px;
+    padding-left:20px;
+    color: var(--text-main);
+}
+
+.nutrition-section li {
+    margin-bottom: 5px;
+}
+
+.image-result img{
+    width:100%;
+    max-width: 600px;
+    border-radius:16px;
+    margin-bottom:20px;
+    box-shadow: var(--shadow-soft);
+}
+
+/* --- OCR Label Results Styles --- */
+.ocr-results-container {
+    padding-top: 20px;
+    margin-top: 25px;
+    border-top: 1px dashed var(--border-color);
+}
+
+/* --- Ingredient Breakdown Styles --- */
+.ingredient-analysis-list {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.ingredient-analysis-card {
+    background: #f8fafc;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px;
+    transition: transform 0.2s ease;
+}
+
+.ingredient-analysis-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+}
+
+.ingredient-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.ingredient-header strong {
+    font-size: 1.05rem;
+    color: var(--text-main);
+    text-transform: capitalize;
+}
+
+.ingredient-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.badge-good {
+    background-color: #dcfce7;
+    color: #166534;
+    border: 1px solid #bbf7d0;
+}
+
+.badge-bad {
+    background-color: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fecaca;
+}
+
+.ingredient-reason {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.ai-warning {
+    background: #FFFAF0;
+    border-left: 4px solid #F6AD55;
+    color: #9C4221;
+    padding: 12px 18px;
+    border-radius: 6px;
+    font-size: 0.95rem;
+    margin-top: 20px;
+    line-height: 1.5;
+}
+

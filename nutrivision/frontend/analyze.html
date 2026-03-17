@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>NutriVision - Analyze Food</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+</head>
+
+<body>
+    <nav>
+        <a href="index.html" class="brand">
+            <span class="brand-icon">🥗</span> NutriVision
+        </a>
+        <div class="nav-links">
+            <a href="analyze.html" class="active">AI Image</a>
+            <a href="barcode.html">Barcode</a>
+            <a href="login.html" id="authLink">Login</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Visual <span class="highlight">Analysis</span></h1>
+            <p>Upload a food image. AWS Rekognition will detect ingredients, and Bedrock will provide a personalized
+                health summary based on your profile.</p>
+        </header>
+
+        <main>
+            <div class="card upload-section">
+                <div class="file-input-wrapper">
+                    <input type="file" id="foodImage" accept="image/*" />
+                    <label for="foodImage" id="fileLabel">
+                        <span class="icon">📁</span> Choose a food image
+                    </label>
+                </div>
+                <div id="imagePreviewContainer" class="hidden">
+                    <img id="imagePreview" src="" alt="Food Preview" />
+                </div>
+                <button id="analyzeBtn" class="btn" disabled>Initialize Analysis</button>
+            </div>
+
+            <div class="card loading-state hidden" id="loadingState">
+                <div class="spinner"></div>
+                <p id="loadingText">Analyzing food using AI...</p>
+            </div>
+            
+            <div id="imageResultContainer" class="hidden">
+                <div class="image-result">
+                    <img id="foodPreview" />
+                </div>
+            </div>
+
+            <div class="card result-section hidden" id="resultSection">
+                <h2>Analysis Result</h2>
+                <pre id="jsonResult"></pre>
+            </div>
+
+            <div class="card error-state hidden" id="errorState">
+                <p id="errorMessage"></p>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        // Auth Check
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('nutrivision_token');
+            if (token) {
+                document.getElementById('authLink').textContent = 'Profile';
+                document.getElementById('authLink').href = 'profile.html';
+            }
+        });
+
+        const imageInput = document.getElementById('foodImage');
+        const fileLabel = document.getElementById('fileLabel');
+        const analyzeBtn = document.getElementById('analyzeBtn');
+        const imagePreview = document.getElementById('imagePreview');
+        const imagePreviewContainer = document.getElementById('imagePreviewContainer');
+        const loadingState = document.getElementById('loadingState');
+        const resultSection = document.getElementById('resultSection');
+        const jsonResult = document.getElementById('jsonResult');
+        const errorState = document.getElementById('errorState');
+        const errorMessage = document.getElementById('errorMessage');
+        const loadingText = document.getElementById('loadingText');
+        const imageResultContainer = document.getElementById('imageResultContainer');
+        const foodPreview = document.getElementById('foodPreview');
+
+        const loadingMessages = [
+            "Analyzing food using AI...",
+            "Detecting ingredients...",
+            "Calculating nutrition..."
+        ];
+
+        let selectedFile = null;
+
+        imageInput.addEventListener('change', function (e) {
+            if (e.target.files && e.target.files[0]) {
+                selectedFile = e.target.files[0];
+                fileLabel.innerHTML = `<span class="icon">✅</span> ${selectedFile.name}`;
+                analyzeBtn.disabled = false;
+
+                const reader = new FileReader();
+                reader.onload = function (event) {
+                    imagePreview.src = event.target.result;
+                    imagePreviewContainer.classList.remove('hidden');
+                }
+                reader.readAsDataURL(selectedFile);
+
+                resultSection.classList.add('hidden');
+                errorState.classList.add('hidden');
+            } else {
+                selectedFile = null;
+                fileLabel.innerHTML = `<span class="icon">📁</span> Choose a food image`;
+                analyzeBtn.disabled = true;
+                imagePreviewContainer.classList.add('hidden');
+            }
+        });
+
+        analyzeBtn.addEventListener('click', async function () {
+            if (!selectedFile) return;
+
+            analyzeBtn.disabled = true;
+            loadingState.classList.remove('hidden');
+            resultSection.classList.add('hidden');
+            errorState.classList.add('hidden');
+
+            const reader = new FileReader();
+            reader.readAsDataURL(selectedFile);
+
+            let messageIndex = 0;
+            loadingText.textContent = loadingMessages[messageIndex];
+            const loadingInterval = setInterval(() => {
+                messageIndex = (messageIndex + 1) % loadingMessages.length;
+                loadingText.textContent = loadingMessages[messageIndex];
+            }, 1500);
+
+            reader.onload = async function () {
+                const base64String = reader.result.split(',')[1];
+
+                try {
+                    const response = await fetch(`${window.CONFIG.API_BASE_URL}/analyze-food`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ image_base64: base64String })
+                    });
+
+                    const rawResult = await response.json();
+                    if (!response.ok) {
+                        throw new Error(rawResult.detail || rawResult.error || 'Failed to analyze image');
+                    }
+
+                    // Aggressively unpack backend payload
+                    let data = rawResult;
+                    if (rawResult.body && typeof rawResult.body === 'string') {
+                        try {
+                            data = JSON.parse(rawResult.body);
+                        } catch (e) {
+                            console.error("Failed to parse main body string", e);
+                        }
+                    }
+                    if (data.nutrition && typeof data.nutrition === 'string') {
+                        try {
+                           data.nutrition = JSON.parse(data.nutrition);
+                        } catch (e) {
+                            console.error("Failed to parse nutrition string", e);
+                        }
+                    }
+
+                    foodPreview.src = `data:image/jpeg;base64,${base64String}`;
+                    imageResultContainer.classList.remove('hidden');
+
+                    const resultParent = document.getElementById('resultSection');
+                    resultParent.innerHTML = renderNutrition(data);
+                    resultParent.classList.remove('hidden');
+                } catch (error) {
+                    console.error('Error:', error);
+                    errorMessage.textContent = `Error: ${error.message}`;
+                    errorState.classList.remove('hidden');
+                } finally {
+                    clearInterval(loadingInterval);
+                    loadingState.classList.add('hidden');
+                    analyzeBtn.disabled = false;
+                }
+            };
+        });
+
+        function renderNutrition(data) {
+            let html = `<div class="nutrition-card">`;
+
+            // Title
+            const foodName = data.food || (data.ingredients && data.ingredients.length > 0 ? data.ingredients[0] : "Unknown Food");
+            html += `<h2 class="food-title">🍽️ ${foodName}</h2>`;
+
+            // Check if there's an error in nutrition
+            const aiError = data.nutrition && data.nutrition.error;
+
+            if (data.nutrition && !aiError && data.nutrition.nutritional_breakdown) {
+                const n = data.nutrition;
+                const macro = n.nutritional_breakdown.macronutrients || {};
+                
+                html += `
+                <div class="macro-grid">
+                    <div class="macro-card">
+                        <h4>Calories</h4>
+                        <p>${n.nutritional_breakdown.calories_per_serving || 0}</p>
+                        <span>kcal</span>
+                    </div>
+                    <div class="macro-card">
+                        <h4>Carbs</h4>
+                        <p>${macro.carbohydrates || '0g'}</p>
+                    </div>
+                    <div class="macro-card">
+                        <h4>Protein</h4>
+                        <p>${macro.protein || '0g'}</p>
+                    </div>
+                    <div class="macro-card">
+                        <h4>Fat</h4>
+                        <p>${macro.fat || '0g'}</p>
+                    </div>
+                </div>`;
+
+                if (n.health_assessment) {
+                    html += `
+                    <div class="health-score" style="margin-top: 30px; padding-top: 20px; border-top: 1px solid var(--border-color);">
+                        Health Score
+                        <div class="score">${n.health_assessment.overall_score || 'N/A'}/10</div>
+                    </div>`;
+
+                    if (n.nutritional_breakdown.key_nutrients && n.nutritional_breakdown.key_nutrients.length > 0) {
+                        html += `
+                        <div class="nutrition-section">
+                            <h3>Key Nutrients</h3>
+                            <ul>${n.nutritional_breakdown.key_nutrients.map(i=>`<li>${i}</li>`).join("")}</ul>
+                        </div>`;
+                    }
+                    if (n.health_assessment.benefits && n.health_assessment.benefits.length > 0) {
+                        html += `
+                        <div class="nutrition-section">
+                            <h3>Benefits</h3>
+                            <ul>${n.health_assessment.benefits.map(i=>`<li>${i}</li>`).join("")}</ul>
+                        </div>`;
+                    }
+                    if (n.health_assessment.concerns && n.health_assessment.concerns.length > 0) {
+                        html += `
+                        <div class="nutrition-section">
+                            <h3>Things to Consider</h3>
+                            <ul>${n.health_assessment.concerns.map(i=>`<li>${i}</li>`).join("")}</ul>
+                        </div>`;
+                    }
+                }
+
+                if (n.personalized_recommendations && n.personalized_recommendations.length > 0) {
+                    html += `
+                    <div class="nutrition-section">
+                        <h3>Recommendations</h3>
+                        <ul>${n.personalized_recommendations.map(i=>`<li>${i}</li>`).join("")}</ul>
+                    </div>`;
+                }
+
+            } else if (aiError) {
+                html += `
+                <div class="ai-warning">
+                    <strong>Notice:</strong> Advanced AI health insights couldn't be generated for this image right now.
+                </div>`;
+            }
+
+            // Append detected ingredients as pills for AI analysis!
+            if (data.ingredients && data.ingredients.length > 0) {
+                html += `
+                <div class="ocr-results-container" style="${(data.nutrition && !aiError) ? 'margin-top:25px;' : 'border-top: none;'}">
+                    <h3 style="color: var(--text-main); font-size: 1.1rem;">Detected Items</h3>
+                    <div class="ingredient-pill-container">
+                        ${data.ingredients.map(text => {
+                            const cleanText = typeof text === 'string' ? text.trim().replace(/^["']|["']$/g, '') : String(text);
+                            if (!cleanText) return '';
+                            return `<div class="ingredient-pill">${cleanText}</div>`;
+                        }).join('')}
+                    </div>
+                </div>
+                `;
+            }
+
+            html += `</div>`;
+            return html;
+        }
+    </script>
+</body>
+
+</html>

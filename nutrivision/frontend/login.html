@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>NutriVision - Login</title>
+    <link rel="stylesheet" href="styles.css">
+    <script src="config.js"></script>
+</head>
+
+<body>
+    <nav>
+        <a href="index.html" class="brand">
+            <span class="brand-icon">🥗</span> NutriVision
+        </a>
+        <div class="nav-links">
+            <a href="analyze.html">AI Image</a>
+            <a href="barcode.html">Barcode</a>
+            <a href="login.html" class="active">Login</a>
+        </div>
+    </nav>
+
+    <div class="container">
+        <header>
+            <h1>Secure <span class="highlight">Login</span></h1>
+            <p>Log in to access your DynamoDB personalized health profile.</p>
+        </header>
+
+        <main>
+            <div class="card">
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" id="email" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" id="password" class="form-control" required />
+                    </div>
+                    <button type="submit" class="btn" id="loginBtn">Secure Login</button>
+
+                    <p style="text-align: center; margin-top: 20px;">
+                        Don't have an account? <a href="register.html" style="color: var(--primary-color);">Register
+                            here</a>.
+                    </p>
+                </form>
+            </div>
+
+            <div id="errorState" class="error-state hidden" style="margin-top: 20px;"></div>
+        </main>
+    </div>
+
+    <script>
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('loginBtn');
+            const errorState = document.getElementById('errorState');
+            btn.disabled = true;
+            btn.textContent = "Authenticating...";
+
+            try {
+                const response = await fetch(`${window.CONFIG.API_BASE_URL}/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email: document.getElementById('email').value,
+                        password: document.getElementById('password').value
+                    })
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail);
+
+                // Store JWT and navigate home
+                localStorage.setItem('nutrivision_token', data.access_token);
+                // In a real app we would decode the JWT to get the user_id, 
+                // for MVP we can extract it or modify backend to return it.
+                window.location.href = 'index.html';
+            } catch (error) {
+                errorState.classList.remove('hidden');
+                errorState.innerHTML = `<p>${error.message}</p>`;
+            } finally {
+                btn.disabled = false;
+                btn.textContent = "Secure Login";
+            }
+        });
+    </script>
+</body>
+
+</html>
